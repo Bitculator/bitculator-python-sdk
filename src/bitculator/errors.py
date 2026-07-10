@@ -10,7 +10,7 @@ avoid shadowing the built-in ``PermissionError`` / ``TimeoutError``.)
 
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any
 
 
 class BitculatorError(Exception):
@@ -32,17 +32,17 @@ class APIDecodeError(BitculatorError):
 class APIError(BitculatorError):
     """A non-2xx response. Subclasses map to specific status codes."""
 
-    def __init__(self, status: int, body: Optional[dict], request_id: Optional[str]) -> None:
+    def __init__(self, status: int, body: dict | None, request_id: str | None) -> None:
         err = body or {}
         self.status = status
-        self.code: Optional[str] = err.get("code")
+        self.code: str | None = err.get("code")
         self.details: Any = err.get("details")
         self.request_id = request_id
         self.message: str = err.get("message") or f"HTTP {status}"
         super().__init__(self.message)
 
     @staticmethod
-    def from_response(status: int, json_body: Any, headers: Any) -> "APIError":
+    def from_response(status: int, json_body: Any, headers: Any) -> APIError:
         """Build the most specific error subclass for a failed response."""
         body = _error_body(json_body)
         request_id = headers.get("x-request-id") if headers is not None else None
@@ -82,9 +82,9 @@ class RateLimitError(APIError):
     def __init__(
         self,
         status: int,
-        body: Optional[dict],
-        request_id: Optional[str],
-        retry_after: Optional[int] = None,
+        body: dict | None,
+        request_id: str | None,
+        retry_after: int | None = None,
     ) -> None:
         super().__init__(status, body, request_id)
         self.retry_after = retry_after
@@ -98,7 +98,7 @@ _STATUS_MAP = {
 }
 
 
-def _error_body(json_body: Any) -> Optional[dict]:
+def _error_body(json_body: Any) -> dict | None:
     if isinstance(json_body, dict):
         err = json_body.get("error")
         if isinstance(err, dict):
@@ -112,7 +112,7 @@ def _header(headers: Any, name: str) -> Any:
     return headers.get(name) if headers is not None else None
 
 
-def _to_int(value: Any) -> Optional[int]:
+def _to_int(value: Any) -> int | None:
     try:
         return int(value)
     except (TypeError, ValueError):

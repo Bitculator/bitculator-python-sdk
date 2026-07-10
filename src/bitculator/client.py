@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import urllib.request
-from typing import Optional
 
 from ._http import HttpClient, Quota
 from ._version import __version__
@@ -47,13 +46,13 @@ class Bitculator:
         base_url: str = DEFAULT_BASE_URL,
         timeout: float = 30.0,
         max_retries: int = 2,
-        user_agent: Optional[str] = None,
-        opener: Optional[urllib.request.OpenerDirector] = None,
+        user_agent: str | None = None,
+        opener: urllib.request.OpenerDirector | None = None,
     ) -> None:
         if not api_key:
             raise BitculatorError("A Data API key is required: Bitculator(api_key=...)")
 
-        self._quota: Optional[Quota] = None
+        self._quota: Quota | None = None
         http = HttpClient(
             api_key=api_key,
             base_url=base_url.rstrip("/"),
@@ -84,6 +83,6 @@ class Bitculator:
         self._quota = quota
 
     @property
-    def quota(self) -> Optional[Quota]:
+    def quota(self) -> Quota | None:
         """Quota (``X-Quota-*``) from the most recent response, or ``None`` before the first call."""
         return self._quota

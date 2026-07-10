@@ -16,8 +16,9 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Callable, Optional
+from typing import Any
 
 from .errors import APIConnectionError, APIDecodeError, APIError, APITimeoutError, BitculatorError
 from .pagination import Page
@@ -27,10 +28,10 @@ from .pagination import Page
 class Quota:
     """Quota headers (``X-Quota-*``) from the most recent response."""
 
-    limit: Optional[int]
-    remaining: Optional[int]
-    reset: Optional[int]
-    raw: dict
+    limit: int | None
+    remaining: int | None
+    reset: int | None
+    raw: dict[str, str]
 
 
 class HttpClient:
@@ -43,7 +44,7 @@ class HttpClient:
         max_retries: int,
         user_agent: str,
         on_quota: Callable[[Quota], None],
-        opener: Optional[urllib.request.OpenerDirector] = None,
+        opener: urllib.request.OpenerDirector | None = None,
     ) -> None:
         self._api_key = api_key
         self._base_url = base_url
@@ -53,27 +54,27 @@ class HttpClient:
         self._on_quota = on_quota
         self._opener = opener or urllib.request.build_opener()
 
-    def get(self, path: str, params: Optional[dict] = None) -> Any:
+    def get(self, path: str, params: dict | None = None) -> Any:
         return _unwrap(self._request("GET", path, params=params))
 
-    def post(self, path: str, body: Any = None, params: Optional[dict] = None) -> Any:
+    def post(self, path: str, body: Any = None, params: dict | None = None) -> Any:
         return _unwrap(self._request("POST", path, params=params, body=body))
 
-    def delete(self, path: str, params: Optional[dict] = None) -> Any:
+    def delete(self, path: str, params: dict | None = None) -> Any:
         return _unwrap(self._request("DELETE", path, params=params))
 
-    def get_page(self, path: str, params: Optional[dict] = None) -> Page:
+    def get_page(self, path: str, params: dict | None = None) -> Page:
         envelope = self._request("GET", path, params=params)
         return Page(self, path, params or {}, envelope)
 
-    def _request(self, method: str, path: str, params: Optional[dict] = None, body: Any = None) -> Any:
+    def _request(self, method: str, path: str, params: dict | None = None, body: Any = None) -> Any:
         url = self._base_url + path + _query(params)
         headers = {
             "Authorization": f"Bearer {self._api_key}",
             "Accept": "application/json",
             "User-Agent": self._user_agent,
         }
-        data: Optional[bytes] = None
+        data: bytes | None = None
         if body is not None:
             try:
                 data = json.dumps(_snake_keys(body)).encode("utf-8")
@@ -102,7 +103,8 @@ class HttpClient:
                         raise APIDecodeError(f"Failed to decode response from {path}: {exc}") from exc
             except urllib.error.HTTPError as exc:
                 self._on_quota(_parse_quota(exc.headers))
-                raw = exc.read()
+                with exc:  # close the error body deterministically (unclosed = ResourceWarning on 3.13+)
+                    raw = exc.read()
                 payload = _safe_json(raw)
                 status = exc.code
                 retryable = status == 429 or (status >= 500 and is_idempotent)
@@ -132,7 +134,7 @@ def _unwrap(envelope: Any) -> Any:
     return envelope
 
 
-def _query(params: Optional[dict]) -> str:
+def _query(params: dict | None) -> str:
     """Serialize params: drop ``None``, lists→CSV, bools→true/false, trailing ``_`` stripped (``from_``→``from``)."""
     if not params:
         return ""
@@ -171,7 +173,7 @@ def _parse_quota(headers: Any) -> Quota:
             if lowered.startswith("x-quota-"):
                 raw[lowered] = value
 
-    def num(name: str) -> Optional[int]:
+    def num(name: str) -> int | None:
         value = raw.get(name)
         if value in (None, ""):
             return None

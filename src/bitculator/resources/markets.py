@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Union
+from typing import Any
 
 from ..pagination import Page
 from ._base import Resource
@@ -27,7 +27,7 @@ class MarketsResource(Resource):
         min_volume, max_volume, sort."""
         return self._http.get_page("/api/v1/pairs", params)
 
-    def pair(self, id: Union[str, int]) -> Any:
+    def pair(self, id: str | int) -> Any:
         """Get a single trading pair by id."""
         return self._http.get(f"/api/v1/pairs/{self._enc(id)}")
 

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Union
+from typing import Any
 
 from ..pagination import Page
 from ._base import Resource
@@ -30,7 +30,7 @@ class EditorialResource(Resource):
         """Submit helpful/unhelpful feedback on an article."""
         return self._http.post(f"/api/v1/articles/{self._enc(slug)}/feedback", {"helpful": helpful})
 
-    def video(self, id: Union[str, int]) -> Any:
+    def video(self, id: str | int) -> Any:
         """Get a single video by id."""
         return self._http.get(f"/api/v1/videos/{self._enc(id)}")
 
@@ -38,6 +38,6 @@ class EditorialResource(Resource):
         """List insights (paginated). Params: page, per_page, locale, type, coin, search, sort."""
         return self._http.get_page("/api/v1/insights", params)
 
-    def insight(self, id: Union[str, int], **params: Any) -> Any:
+    def insight(self, id: str | int, **params: Any) -> Any:
         """Get a single insight by id. Params: locale."""
         return self._http.get(f"/api/v1/insights/{self._enc(id)}", params)

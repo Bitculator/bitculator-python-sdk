@@ -7,17 +7,18 @@ A single page of a paginated list, plus lazy forward navigation.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Iterator, List, Optional
+from collections.abc import Iterator
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from ._http import HttpClient
 
 
 class Page:
-    def __init__(self, http: "HttpClient", path: str, params: dict, envelope: Any) -> None:
+    def __init__(self, http: HttpClient, path: str, params: dict, envelope: Any) -> None:
         env = envelope if isinstance(envelope, dict) else {}
         #: Rows on this page.
-        self.data: List[Any] = env.get("data", []) or []
+        self.data: list[Any] = env.get("data", []) or []
         #: Laravel paginator metadata (current_page, last_page, total, ...).
         self.meta: dict = env.get("meta", {}) or {}
         #: Page navigation links.
@@ -34,7 +35,7 @@ class Page:
         current, last = self.meta.get("current_page"), self.meta.get("last_page")
         return current is not None and last is not None and current < last
 
-    def next_page(self) -> Optional["Page"]:
+    def next_page(self) -> Page | None:
         """Fetch the next page, or ``None`` if this is the last one."""
         if not self.has_more:
             return None
@@ -43,7 +44,7 @@ class Page:
 
     def auto_paging_iter(self) -> Iterator[Any]:
         """Yield every row across this and all following pages, fetching lazily."""
-        page: Optional[Page] = self
+        page: Page | None = self
         while page is not None:
             yield from page.data
             page = page.next_page()

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, List, Union
+from typing import Any
 
 from ..pagination import Page
 from ._base import Resource
@@ -36,7 +36,7 @@ class AlarmsResource(Resource):
             },
         )
 
-    def delete(self, id: Union[str, int]) -> Any:
+    def delete(self, id: str | int) -> Any:
         """Delete an alarm by id."""
         return self._http.delete(f"/api/v1/alarms/{self._enc(id)}")
 
@@ -48,19 +48,19 @@ class WebhooksResource(Resource):
         """List your webhook endpoints."""
         return self._http.get("/api/v1/webhooks")
 
-    def create(self, *, url: str, events: List[str]) -> Any:
+    def create(self, *, url: str, events: list[str]) -> Any:
         """Register a webhook endpoint for a set of events."""
         return self._http.post("/api/v1/webhooks", {"url": url, "events": events})
 
-    def delete(self, id: Union[str, int]) -> Any:
+    def delete(self, id: str | int) -> Any:
         """Delete a webhook endpoint by id."""
         return self._http.delete(f"/api/v1/webhooks/{self._enc(id)}")
 
-    def test(self, id: Union[str, int]) -> Any:
+    def test(self, id: str | int) -> Any:
         """Send a test event to a webhook endpoint."""
         return self._http.post(f"/api/v1/webhooks/{self._enc(id)}/test")
 
-    def deliveries(self, id: Union[str, int], **params: Any) -> Page:
+    def deliveries(self, id: str | int, **params: Any) -> Page:
         """Delivery log for a webhook endpoint (paginated). Params: page, per_page."""
         return self._http.get_page(f"/api/v1/webhooks/{self._enc(id)}/deliveries", params)
 
