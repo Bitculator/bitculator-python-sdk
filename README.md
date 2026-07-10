@@ -1,5 +1,8 @@
 # Bitculator Data API — Python SDK
 
+[bitculator.com](https://bitculator.com) · [API documentation](https://bitculator.com/en/documentation/api/v1) · [Get an API key](https://bitculator.com/user/developer/api)
+[PyPI — `bitculator`](https://pypi.org/project/bitculator/) · [GitHub](https://github.com/Bitculator/bitculator-python-sdk)
+
 The official Python SDK for the [Bitculator Data API](https://bitculator.com).
 Zero dependencies (standard-library only), typed, works on Python 3.9+.
 
