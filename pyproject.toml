@@ -1,0 +1,30 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "bitculator"
+dynamic = ["version"]
+description = "Official Python SDK for the Bitculator Data API"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [{ name = "Bitculator" }]
+keywords = ["bitculator", "crypto", "cryptocurrency", "market-data", "api", "sdk"]
+dependencies = []
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Topic :: Office/Business :: Financial",
+    "Typing :: Typed",
+]
+
+[project.urls]
+Documentation = "https://bitculator.com/en/documentation/api/v1"
+Repository = "https://github.com/bitculator/bitculator-python-sdk"
+
+[tool.hatch.version]
+path = "src/bitculator/_version.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/bitculator"]
