@@ -1,14 +1,16 @@
 """
 The DRY transport core. Every request in the SDK flows through
 ``HttpClient._request``: URL + query building, auth headers, JSON
-(de)serialization, the response envelope, quota capture, retries with backoff,
-timeouts, and error mapping all live here — nowhere else. Uses only the standard
-library (``urllib``) so the SDK has zero runtime dependencies.
+(de)serialization, gzip response decompression, the response envelope, quota
+capture, retries with backoff, timeouts, and error mapping all live here —
+nowhere else. Uses only the standard library (``urllib``) so the SDK has zero
+runtime dependencies.
 """
 
 from __future__ import annotations
 
 import decimal
+import gzip
 import http.client
 import json
 import random
@@ -16,6 +18,7 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
+import zlib
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
@@ -72,6 +75,7 @@ class HttpClient:
         headers = {
             "Authorization": f"Bearer {self._api_key}",
             "Accept": "application/json",
+            "Accept-Encoding": "gzip",
             "User-Agent": self._user_agent,
         }
         data: bytes | None = None
@@ -95,17 +99,15 @@ class HttpClient:
                 with self._opener.open(request, timeout=self._timeout) as response:
                     self._on_quota(_parse_quota(response.headers))
                     raw = response.read()
-                    if not raw:
-                        return None
                     try:
-                        return json.loads(raw)
-                    except (ValueError, TypeError) as exc:
+                        return _decode(raw, response.headers)
+                    except _DECODE_ERRORS as exc:
                         raise APIDecodeError(f"Failed to decode response from {path}: {exc}") from exc
             except urllib.error.HTTPError as exc:
                 self._on_quota(_parse_quota(exc.headers))
                 with exc:  # close the error body deterministically (unclosed = ResourceWarning on 3.13+)
                     raw = exc.read()
-                payload = _safe_json(raw)
+                payload = _safe_json(raw, exc.headers)
                 status = exc.code
                 retryable = status == 429 or (status >= 500 and is_idempotent)
                 if retryable and attempt < self._max_retries:
@@ -207,10 +209,26 @@ def _backoff(attempt: int) -> float:
     return min(8.0, 0.25 * (2 ** attempt)) + random.uniform(0.0, 0.1)
 
 
-def _safe_json(raw: bytes) -> Any:
-    if not raw:
-        return None
+# What a malformed body raises: bad JSON (ValueError/TypeError) or bad gzip
+# (OSError for a bad header, EOFError when truncated, zlib.error when corrupt).
+_DECODE_ERRORS = (ValueError, TypeError, OSError, EOFError, zlib.error)
+
+
+def _decode(raw: bytes, headers: Any) -> Any:
+    """Parse a JSON body (``None`` when empty), gunzipping it first when the server compressed it.
+
+    The gzip magic-number check leaves a body that a custom ``opener`` has
+    already decompressed untouched.
+    """
+    encoding = str(headers.get("content-encoding", "")) if headers is not None else ""
+    if encoding.strip().lower() in ("gzip", "x-gzip") and raw[:2] == b"\x1f\x8b":
+        raw = gzip.decompress(raw)
+    return json.loads(raw) if raw else None
+
+
+def _safe_json(raw: bytes, headers: Any) -> Any:
+    """Lenient :func:`_decode` for error bodies: anything unparseable becomes ``None``."""
     try:
-        return json.loads(raw)
-    except (ValueError, TypeError):
+        return _decode(raw, headers)
+    except _DECODE_ERRORS:
         return None

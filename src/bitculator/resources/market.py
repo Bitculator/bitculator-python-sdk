@@ -34,7 +34,11 @@ class SentimentResource(Resource):
         return self._http.post(f"/api/v1/coins/{self._enc(slug)}/votes", {"vote": vote})
 
     def fear_greed(self, **params: Any) -> Any:
-        """Fear & Greed index. Params: coin."""
+        """Fear & Greed index. Params: coin.
+
+        Each reading carries ``index`` (0-100, as shown on Bitculator; use it for
+        display) and the raw ``score`` (-100..+100).
+        """
         return self._http.get("/api/v1/sentiment/fear-greed", params)
 
     def bull_bear(self, **params: Any) -> Any:

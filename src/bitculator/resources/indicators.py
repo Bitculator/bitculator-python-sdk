@@ -86,7 +86,11 @@ class CalculatorsResource(Resource):
 
     def compound_interest(self, **params: Any) -> Any:
         """Compound interest calculator. Params: principal, rate, duration, duration_unit,
-        compound_frequency, contribution, contribution_frequency."""
+        compound_frequency, contribution, contribution_frequency.
+
+        ``rate`` is the annual nominal rate in %; each compounding period earns
+        ``rate`` divided by the periods per year.
+        """
         return self._http.get("/api/v1/calculators/compound-interest", params)
 
     def loan(self, **params: Any) -> Any:
